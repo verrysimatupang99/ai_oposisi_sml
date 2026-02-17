@@ -147,11 +147,11 @@ async def init_db():
     Creates all tables defined in the models.
     """
     try:
-        logger.info("🗄️  Creating database tables...")
+        logger.info("Creating database tables...")
         Base.metadata.create_all(bind=engine)
-        logger.info("✅ Database tables created successfully")
+        logger.info("Database tables created successfully")
     except Exception as e:
-        logger.error(f"❌ Failed to create database tables: {e}")
+        logger.error(f"Failed to create database tables: {e}")
         raise
 
 async def close_db():
@@ -159,11 +159,11 @@ async def close_db():
     Close database connections.
     """
     try:
-        logger.info("🗄️  Closing database connections...")
+        logger.info("Closing database connections...")
         engine.dispose()
-        logger.info("✅ Database connections closed")
+        logger.info("Database connections closed")
     except Exception as e:
-        logger.error(f"❌ Failed to close database connections: {e}")
+        logger.error(f"Failed to close database connections: {e}")
 
 # Import models to avoid circular imports
 from app.models.user import User
@@ -188,11 +188,11 @@ async def create_tables():
     Create all database tables.
     """
     try:
-        logger.info("🗄️  Creating database tables...")
+        logger.info("Creating database tables...")
         Base.metadata.create_all(bind=engine)
-        logger.info("✅ All database tables created successfully")
+        logger.info("All database tables created successfully")
     except Exception as e:
-        logger.error(f"❌ Failed to create database tables: {e}")
+        logger.error(f"Failed to create database tables: {e}")
         raise
 
 async def drop_tables():
@@ -200,11 +200,11 @@ async def drop_tables():
     Drop all database tables.
     """
     try:
-        logger.info("🗑️  Dropping database tables...")
+        logger.info("Dropping database tables...")
         Base.metadata.drop_all(bind=engine)
-        logger.info("✅ All database tables dropped successfully")
+        logger.info("All database tables dropped successfully")
     except Exception as e:
-        logger.error(f"❌ Failed to drop database tables: {e}")
+        logger.error(f"Failed to drop database tables: {e}")
         raise
 
 async def reset_database():

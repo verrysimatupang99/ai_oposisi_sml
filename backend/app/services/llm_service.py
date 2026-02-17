@@ -45,6 +45,7 @@ class LLMService:
         self.client = None
         self.model_info = None
         self.is_initialized = False
+        self.mock_mode = False  # Add mock mode flag
         self.logger = logging.getLogger(__name__)
         
     async def initialize(self):
@@ -55,7 +56,9 @@ class LLMService:
         For development: LM Studio is optional - runs in mock mode if not available.
         """
         try:
-            self.logger.info("🤖 Initializing LLM service...")
+            self.logger.info("Initializing LLM service...")
+            self.logger.info(f"   LM Studio URL: {settings.LM_STUDIO_URL}")
+            self.logger.info(f"   Model: {settings.LM_STUDIO_MODEL}")
             
             # Create HTTP client with timeout
             self.client = httpx.AsyncClient(
@@ -68,16 +71,18 @@ class LLMService:
             
             self.status = LLMStatus.READY
             self.is_initialized = True
+            self.mock_mode = False
             
-            self.logger.info("✅ LLM service initialized successfully")
+            self.logger.info("LLM service initialized successfully")
             ai_logger.logger.info("LLM service initialized")
             
         except Exception as e:
             # For development: Don't fail if LM Studio is not available
-            self.logger.warning(f"⚠️  LLM Studio not available: {e}")
-            self.logger.info("📝 Running in MOCK mode - LLM requests will return mock responses")
-            self.status = LLMStatus.ERROR
-            self.is_initialized = False
+            self.logger.warning(f"LLM Studio not available: {e}")
+            self.logger.info("Running in MOCK mode - LLM requests will return mock responses")
+            self.status = LLMStatus.READY  # Change to READY so mock works
+            self.is_initialized = True  # Allow mock responses
+            self.mock_mode = True  # Enable mock mode
             # Don't raise - allow app to continue without LLM for development
             # In production, you may want to uncomment the line below:
             # raise
@@ -112,7 +117,7 @@ class LLMService:
                 "max_tokens": settings.LM_STUDIO_MAX_TOKENS
             }
             
-            self.logger.info(f"✅ LM Studio connection successful. Using model: {settings.LM_STUDIO_MODEL}")
+            self.logger.info(f"LM Studio connection successful. Using model: {settings.LM_STUDIO_MODEL}")
             
         except httpx.RequestError as e:
             raise Exception(f"LM Studio connection error: {e}")
@@ -147,6 +152,10 @@ class LLMService:
             raise Exception("LLM service not initialized")
         
         start_time = datetime.utcnow()
+        
+        # Return mock response if in mock mode
+        if self.mock_mode:
+            return self._generate_mock_response(messages, start_time)
         
         try:
             # Prepare request payload
@@ -204,6 +213,41 @@ class LLMService:
             self.logger.error(f"❌ Chat completion failed: {e}")
             ai_logger.log_model_error(settings.LM_STUDIO_MODEL, str(e))
             raise
+    
+    def _generate_mock_response(self, messages: List[Dict[str, str]], start_time: datetime) -> LLMResponse:
+        """
+        Generate a mock response when LM Studio is unavailable.
+        
+        Args:
+            messages: Chat messages
+            start_time: Request start time
+            
+        Returns:
+            LLMResponse: Mock response with Dr. Arjuna Wibawa persona
+        """
+        user_message = messages[-1]["content"] if messages else "pertanyaan"
+        
+        mock_content = f"""Sebagai Dr. Arjuna Wibawa, saya dengan senang hati menanggapi pertanyaan Anda tentang "{user_message[:50]}..."
+
+**CATATAN PENTING:** 
+Saat ini sistem berjalan dalam mode MOCK karena LM Studio tidak tersedia. Ini adalah respons placeholder untuk tujuan pengembangan.
+
+Untuk respons AI yang sesungguhnya, pastikan:
+1. LM Studio berjalan di {settings.LM_STUDIO_URL}
+2. Model {settings.LM_STUDIO_MODEL} telah dimuat
+3. Server siap menerima permintaan
+
+Dalam konteks demokrasi dan transparansi, saya mendorong dialog yang konstruktif dan analisis yang berbasis data."""
+        
+        response_time = (datetime.utcnow() - start_time).total_seconds()
+        
+        return LLMResponse(
+            content=mock_content,
+            model="mock-mode",
+            usage={"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+            response_time=response_time,
+            finish_reason="mock"
+        )
     
     async def generate_completion(
         self,

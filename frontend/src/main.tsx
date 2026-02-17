@@ -17,7 +17,7 @@ import { ThemeProvider, CssBaseline } from '@mui/material';
 
 // Import store and theme
 import { store } from './store/store';
-import { theme } from './styles/theme';
+import theme from './styles/theme';
 
 // Import main app component
 import App from './App';
@@ -34,7 +34,7 @@ const root = ReactDOM.createRoot(
 root.render(
   <React.StrictMode>
     <Provider store={store}>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <App />

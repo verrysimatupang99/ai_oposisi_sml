@@ -40,14 +40,20 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     
     # LLM Configuration
-    LM_STUDIO_URL: str = "http://192.168.110.162:1234"  # Updated to your LM Studio IP
-    LM_STUDIO_MODEL: str = "meta-llama-3-8b-instruct-bpe-fix"  # Updated to available model
+    LM_STUDIO_URL: str = "http://192.168.110.156:1234"  # LM Studio server IP
+    LM_STUDIO_MODEL: str = "llama-3.2-1b-instruct"  # Llama 3.2 1B Instruct model
     LM_STUDIO_TIMEOUT: int = 60
-    LM_STUDIO_MAX_TOKENS: int = 4000
+    LM_STUDIO_MAX_TOKENS: int = 2048  # Reduced for 1B model
     LM_STUDIO_TEMPERATURE: float = 0.7
     
+    # RAG Configuration
+    RAG_ENABLED: bool = True
+    RAG_TOP_K: int = 3  # Number of documents to retrieve
+    RAG_SIMILARITY_THRESHOLD: float = 0.3  # Minimum relevance score
+    EMBEDDING_MODEL: str = "text-embedding-nomic-embed-text-v1.5"
+    
     # CORS
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:3001"]
+    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:3001", "http://localhost:5173"]
     ALLOWED_HOSTS: List[str] = ["localhost", "0.0.0.0", "127.0.0.1"]
     
     # Logging

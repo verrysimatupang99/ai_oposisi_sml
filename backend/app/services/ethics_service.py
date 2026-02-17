@@ -55,16 +55,16 @@ class EthicsService:
         Loads violation patterns and democracy protocols.
         """
         try:
-            self.logger.info("🛡️  Initializing Ethics service...")
+            self.logger.info("Initializing Ethics service...")
             
             # Validate configuration
             if not settings.ETHICS_ENABLED:
-                self.logger.warning("⚠️  Ethics validation is disabled in configuration")
+                self.logger.warning("Ethics validation is disabled in configuration")
             
-            self.logger.info("✅ Ethics service initialized successfully")
+            self.logger.info("Ethics service initialized successfully")
             
         except Exception as e:
-            self.logger.error(f"❌ Failed to initialize ethics service: {e}")
+            self.logger.error(f"Failed to initialize ethics service: {e}")
             raise
     
     def _load_violation_patterns(self) -> Dict[str, List[str]]:
@@ -219,11 +219,11 @@ class EthicsService:
                     details=validation_results["details"]
                 )
             
-            self.logger.info(f"✅ Content validation completed. Valid: {validation_results['is_valid']}")
+            self.logger.info(f"Content validation completed. Valid: {validation_results['is_valid']}")
             return validation_results
             
         except Exception as e:
-            self.logger.error(f"❌ Content validation failed: {e}")
+            self.logger.error(f"Content validation failed: {e}")
             raise
     
     def _detect_violations(self, content: str, strict_mode: bool) -> List[Dict[str, Any]]:
@@ -417,7 +417,7 @@ class EthicsService:
             return validation_results
             
         except Exception as e:
-            self.logger.error(f"❌ Response validation failed: {e}")
+            self.logger.error(f"Response validation failed: {e}")
             raise
     
     def _check_response_compliance(self, response: str, user_input: str) -> Dict[str, Any]:

@@ -23,8 +23,8 @@ import {
   ApiError
 } from '../types/auth';
 
-// API base URL from environment
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1';
+// API base URL from environment (Vite uses import.meta.env)
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 // Create axios instance
 const api = axios.create({

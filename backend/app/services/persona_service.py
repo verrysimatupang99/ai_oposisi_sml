@@ -40,15 +40,15 @@ class PersonaService:
         Loads default personas and sets up persona configurations.
         """
         try:
-            self.logger.info("🎭 Initializing Persona service...")
+            self.logger.info("Initializing Persona service...")
             
             # Load default personas
             await self._load_default_personas()
             
-            self.logger.info("✅ Persona service initialized successfully")
+            self.logger.info("Persona service initialized successfully")
             
         except Exception as e:
-            self.logger.error(f"❌ Failed to initialize persona service: {e}")
+            self.logger.error(f"Failed to initialize persona service: {e}")
             raise
     
     async def _load_default_personas(self):
@@ -89,10 +89,10 @@ class PersonaService:
             
             self.active_personas["dr_arjuna"] = dr_arjuna
             
-            self.logger.info(f"✅ Loaded {len(self.active_personas)} default personas")
+            self.logger.info(f"Loaded {len(self.active_personas)} default personas")
             
         except Exception as e:
-            self.logger.error(f"❌ Failed to load default personas: {e}")
+            self.logger.error(f"Failed to load default personas: {e}")
             raise
     
     async def get_persona(self, persona_id: str) -> Optional[Dict[str, Any]]:
@@ -179,11 +179,11 @@ class PersonaService:
                 }
             )
             
-            self.logger.info(f"✅ Generated response for persona: {persona['name']}")
+            self.logger.info(f"Generated response for persona: {persona['name']}")
             return response
             
         except Exception as e:
-            self.logger.error(f"❌ Failed to generate persona response: {e}")
+            self.logger.error(f"Failed to generate persona response: {e}")
             raise
     
     def _build_persona_prompt(self, persona: Dict[str, Any]) -> str:
@@ -304,11 +304,11 @@ class PersonaService:
                     "timestamp": datetime.utcnow().isoformat()
                 }
             
-            self.logger.info(f"✅ Completed content analysis for input: {user_input[:50]}...")
+            self.logger.info(f"Completed content analysis for input: {user_input[:50]}...")
             return analysis_results
             
         except Exception as e:
-            self.logger.error(f"❌ Failed to analyze user input: {e}")
+            self.logger.error(f"Failed to analyze user input: {e}")
             raise
     
     async def get_persona_profile(self, persona_id: str) -> Optional[Dict[str, Any]]:
@@ -372,11 +372,11 @@ class PersonaService:
             # Update persona settings
             self.active_personas[persona_id].update(settings)
             
-            self.logger.info(f"✅ Updated settings for persona: {persona_id}")
+            self.logger.info(f"Updated settings for persona: {persona_id}")
             return True
             
         except Exception as e:
-            self.logger.error(f"❌ Failed to update persona settings: {e}")
+            self.logger.error(f"Failed to update persona settings: {e}")
             return False
 
 # Export persona service

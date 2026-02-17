@@ -9,6 +9,7 @@ Created: 2025-01-11
 """
 
 from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.security import HTTPBearer
@@ -27,6 +28,8 @@ from app.api.v1 import auth, analysis, chat, persona, ethics
 from app.services.llm_service import LLMService
 from app.services.persona_service import PersonaService
 from app.services.ethics_service import EthicsService
+from app.services.rag_service import RAGService
+from app.services.knowledge_loader import ingest_knowledge_base
 from app.utils.logger import setup_logging
 
 # Setup logging
@@ -47,53 +50,69 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     - Service initialization
     - Cleanup on shutdown
     """
-    logger.info("🚀 Starting AI Tokoh Oposisi & Intelektual Kritis application...")
+    logger.info("Starting AI Tokoh Oposisi & Intelektual Kritis application...")
     
     try:
         # Startup: Initialize database
-        logger.info("🗄️  Initializing database...")
+        logger.info("Initializing database...")
         await init_db()
-        logger.info("✅ Database initialized successfully")
+        logger.info("Database initialized successfully")
         
         # Startup: Initialize services
-        logger.info("🤖 Initializing AI services...")
+        logger.info("Initializing AI services...")
         
         # Initialize LLM Service
         app.state.llm_service = LLMService()
         await app.state.llm_service.initialize()
-        logger.info("✅ LLM service initialized")
+        logger.info("LLM service initialized")
         
         # Initialize Persona Service
         app.state.persona_service = PersonaService(app.state.llm_service)
         await app.state.persona_service.initialize()
-        logger.info("✅ Persona service initialized")
+        logger.info("Persona service initialized")
         
         # Initialize Ethics Service
         app.state.ethics_service = EthicsService()
         await app.state.ethics_service.initialize()
-        logger.info("✅ Ethics service initialized")
+        logger.info("Ethics service initialized")
         
-        logger.info("🎉 All services initialized successfully")
+        # Initialize RAG Service (if enabled)
+        if settings.RAG_ENABLED:
+            app.state.rag_service = RAGService()
+            await app.state.rag_service.initialize()
+            
+            # Auto-ingest knowledge base if empty
+            if app.state.rag_service.vector_store.count() == 0:
+                logger.info("Knowledge base empty, ingesting documents...")
+                count = await ingest_knowledge_base(app.state.rag_service)
+                logger.info(f"Ingested {count} documents into RAG")
+            
+            logger.info("RAG service initialized")
+        else:
+            app.state.rag_service = None
+            logger.info("RAG service disabled")
+        
+        logger.info("All services initialized successfully")
         
         yield
         
     except Exception as e:
-        logger.error(f"❌ Failed to initialize application: {e}")
+        logger.error(f"Failed to initialize application: {e}")
         raise
     finally:
         # Shutdown: Cleanup
-        logger.info("🛑 Shutting down application...")
+        logger.info("Shutting down application...")
         
         # Close database connections
         await close_db()
-        logger.info("✅ Database connections closed")
+        logger.info("Database connections closed")
         
         # Cleanup services
         if hasattr(app.state, 'llm_service'):
             await app.state.llm_service.cleanup()
-            logger.info("✅ LLM service cleanup completed")
+            logger.info("LLM service cleanup completed")
         
-        logger.info("👋 Application shutdown complete")
+        logger.info("Application shutdown complete")
 
 # Create FastAPI app with lifespan
 app = FastAPI(
@@ -139,10 +158,11 @@ app.add_middleware(
 )
 
 # Configure trusted host middleware
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=settings.ALLOWED_HOSTS
-)
+# NOTE: Disabled for development - TrustedHostMiddleware can block CORS preflight requests
+# app.add_middleware(
+#     TrustedHostMiddleware,
+#     allowed_hosts=settings.ALLOWED_HOSTS
+# )
 
 # Health check endpoint
 @app.get("/health", tags=["System"])
@@ -199,8 +219,8 @@ app.include_router(
 app.include_router(
     chat.router,
     prefix="/api/v1",
-    tags=["Chat & Conversation"],
-    dependencies=[Depends(verify_token)]
+    tags=["Chat & Conversation"]
+    # No authentication required for chat
 )
 
 app.include_router(
@@ -286,14 +306,17 @@ async def http_exception_handler(request, exc):
     """
     logger.warning(f"HTTP Exception: {exc.status_code} - {exc.detail}")
     
-    return {
-        "error": {
-            "code": exc.status_code,
-            "message": exc.detail,
-            "timestamp": datetime.utcnow().isoformat(),
-            "path": str(request.url)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": {
+                "code": exc.status_code,
+                "message": exc.detail,
+                "timestamp": datetime.utcnow().isoformat(),
+                "path": str(request.url)
+            }
         }
-    }
+    )
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request, exc):
@@ -309,14 +332,17 @@ async def general_exception_handler(request, exc):
     """
     logger.error(f"Unexpected error: {exc}", exc_info=True)
     
-    return {
-        "error": {
-            "code": 500,
-            "message": "Internal server error",
-            "timestamp": datetime.utcnow().isoformat(),
-            "path": str(request.url)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": {
+                "code": 500,
+                "message": "Internal server error",
+                "timestamp": datetime.utcnow().isoformat(),
+                "path": str(request.url)
+            }
         }
-    }
+    )
 
 if __name__ == "__main__":
     import uvicorn

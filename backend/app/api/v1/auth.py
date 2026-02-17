@@ -12,18 +12,21 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
-from typing import Dict, Any
+# from typing import Dict, Any (Removed unused imports)
 
 from app.core.database import get_db
 from app.core.security import (
     authenticate_user, create_access_token, create_refresh_token,
-    verify_password, hash_password, is_valid_username, is_valid_email, is_valid_password,
-    get_current_user  # Add missing import
+    hash_password, is_valid_username, is_valid_email, is_valid_password,
+    get_current_user
 )
 from app.core.config import settings
 from app.models.user import User
 from app.schemas.auth import UserCreate, UserResponse, Token, TokenRefresh
 from app.utils.logger import security_logger
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Create router
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -141,37 +144,22 @@ async def login_user(
 ):
     """
     Authenticate user and return access tokens.
-    
-    Args:
-        form_data (OAuth2PasswordRequestForm): Login form data
-        db (Session): Database session
-        
-    Returns:
-        Token: Access and refresh tokens
-        
-    Raises:
-        HTTPException: If authentication fails
     """
+    import traceback
     try:
+        logger.info(f"Attempting login for user: {form_data.username}")
         # Authenticate user
         user = authenticate_user(db, form_data.username, form_data.password)
         
         if not user:
-            # Log failed authentication
-            security_logger.log_authentication(
-                username=form_data.username,
-                success=False,
-                details={
-                    "action": "login",
-                    "reason": "invalid_credentials"
-                }
-            )
-            
+            logger.warning(f"Login failed for {form_data.username}: Invalid credentials")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect username or password",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+        
+        logger.info(f"Login successful for {form_data.username}, creating tokens")
         
         # Create access token
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -185,16 +173,7 @@ async def login_user(
             data={"sub": str(user.id), "username": user.username}
         )
         
-        # Log successful authentication
-        security_logger.log_authentication(
-            username=user.username,
-            success=True,
-            details={
-                "action": "login",
-                "user_id": str(user.id),
-                "is_superuser": user.is_superuser
-            }
-        )
+        logger.info("Tokens created successfully")
         
         return {
             "access_token": access_token,
@@ -207,24 +186,20 @@ async def login_user(
                 "email": user.email,
                 "full_name": user.full_name,
                 "is_active": user.is_active,
-                "is_superuser": user.is_superuser
+                "is_superuser": user.is_superuser,
+                "created_at": user.created_at,
+                "updated_at": user.updated_at
             }
         }
         
     except HTTPException:
         raise
     except Exception as e:
-        security_logger.log_authentication(
-            username=form_data.username,
-            success=False,
-            details={
-                "action": "login",
-                "error": str(e)
-            }
-        )
+        logger.error(f"Login unexpected error: {str(e)}")
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Authentication failed"
+            detail=f"Authentication failed: {str(e)}"
         )
 
 @router.post("/refresh", response_model=Token)
@@ -420,9 +395,6 @@ async def change_password(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Password change failed"
         )
-
-# Import dependency at the bottom to avoid circular imports
-from app.core.security import get_current_user
 
 # Export router
 __all__ = ["router"]
